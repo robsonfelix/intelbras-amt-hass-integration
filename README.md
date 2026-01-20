@@ -227,5 +227,6 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 
 ## Créditos
 
-- Baseado no protocolo ISECNet/ISECMobile da Intelbras
-- Inspirado no projeto [intelbras-amt-home-assistant](https://github.com/Pehesi97/intelbras-amt-home-assistant) de Pehesi97
+- Originalmente desenvolvido como conversão de um projeto Node-RED para Python
+- Protocolo ISECNet/ISECMobile da Intelbras
+- Referência adicional do projeto [intelbras-amt-home-assistant](https://github.com/Pehesi97/intelbras-amt-home-assistant) de Pehesi97 para detalhes do protocolo
