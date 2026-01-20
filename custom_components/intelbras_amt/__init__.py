@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, Platform
+from homeassistant.const import CONF_PASSWORD, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 
-from .client import AMTClient
+from .server import AMTServer
 from .const import (
     CONF_PASSWORD_A,
     CONF_PASSWORD_B,
@@ -35,20 +35,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Intelbras AMT from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Create client
-    client = AMTClient(
-        host=entry.data[CONF_HOST],
+    # Create server (listens for panel connections)
+    server = AMTServer(
         port=entry.data[CONF_PORT],
         password=entry.data[CONF_PASSWORD],
     )
 
     # Set partition passwords if configured
-    client.set_partition_passwords(
+    server.set_partition_passwords(
         password_a=entry.data.get(CONF_PASSWORD_A),
         password_b=entry.data.get(CONF_PASSWORD_B),
         password_c=entry.data.get(CONF_PASSWORD_C),
         password_d=entry.data.get(CONF_PASSWORD_D),
     )
+
+    # Start the server
+    await server.start()
 
     # Get scan interval from options or data
     scan_interval = entry.options.get(
@@ -57,11 +59,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Create coordinator
-    coordinator = AMTCoordinator(hass, client, scan_interval)
+    coordinator = AMTCoordinator(hass, server, scan_interval)
 
-    # Fetch initial data
-    await coordinator.async_config_entry_first_refresh()
-
+    # Don't wait for first refresh - panel may not be connected yet
+    # The coordinator will return disconnected status until panel connects
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     # Forward entry setup to platforms
@@ -69,6 +70,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_update_options))
+
+    _LOGGER.info("Intelbras AMT integration started, waiting for panel connection on port %s", entry.data[CONF_PORT])
 
     return True
 

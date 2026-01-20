@@ -8,11 +8,10 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
+from homeassistant.const import CONF_PASSWORD, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .client import AMTClient, AMTClientError
 from .const import (
     CONF_PASSWORD_A,
     CONF_PASSWORD_B,
@@ -26,9 +25,10 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Server mode: only need port and password
+# The panel connects TO Home Assistant, so no host needed
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST): str,
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Required(CONF_PASSWORD): str,
     }
@@ -60,44 +60,32 @@ class AMTConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Test connection
-            client = AMTClient(
-                host=user_input[CONF_HOST],
-                port=user_input[CONF_PORT],
-                password=user_input[CONF_PASSWORD],
-            )
+            port = user_input[CONF_PORT]
+            password = user_input[CONF_PASSWORD]
 
-            try:
-                await client.connect()
-                status = await client.get_status()
-                await client.disconnect()
+            # Validate port
+            if not 1 <= port <= 65535:
+                errors["port"] = "invalid_port"
+            elif len(password) < 4:
+                errors["password"] = "invalid_password"
+            else:
+                # Check if port is already configured
+                await self.async_set_unique_id(f"amt_server_{port}")
+                self._abort_if_unique_id_configured()
 
                 # Store data for next step
                 self._data = user_input
-                self._data["model_name"] = status.get("model_name", "AMT")
-
-                # Check if already configured
-                await self.async_set_unique_id(
-                    f"amt_{user_input[CONF_HOST]}_{user_input[CONF_PORT]}"
-                )
-                self._abort_if_unique_id_configured()
 
                 # Proceed to partition passwords step
                 return await self.async_step_partitions()
-
-            except AMTClientError as err:
-                _LOGGER.error("Connection failed: %s", err)
-                errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                _LOGGER.exception("Unexpected error")
-                errors["base"] = "unknown"
-            finally:
-                await client.disconnect()
 
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
+            description_placeholders={
+                "default_port": str(DEFAULT_PORT),
+            },
         )
 
     async def async_step_partitions(
@@ -112,13 +100,16 @@ class AMTConfigFlow(ConfigFlow, domain=DOMAIN):
             self._data[CONF_SCAN_INTERVAL] = DEFAULT_SCAN_INTERVAL
 
             return self.async_create_entry(
-                title=f"{self._data.get('model_name', 'AMT')} ({self._data[CONF_HOST]})",
+                title=f"AMT (porta {self._data[CONF_PORT]})",
                 data=self._data,
             )
 
         return self.async_show_form(
             step_id="partitions",
             data_schema=STEP_PARTITIONS_DATA_SCHEMA,
+            description_placeholders={
+                "note": "Configure as senhas das partições se necessário",
+            },
         )
 
     @staticmethod

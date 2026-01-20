@@ -6,7 +6,7 @@ import logging
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -65,7 +65,7 @@ class AMTButtonBase(CoordinatorEntity[AMTCoordinator], ButtonEntity):
 
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=f"{ENTITY_PREFIX.upper()} {self._entry.data[CONF_HOST]}",
+            name=f"{ENTITY_PREFIX.upper()} (porta {self._entry.data[CONF_PORT]})",
             manufacturer="Intelbras",
             model=model_name,
         )

@@ -5,7 +5,7 @@ from typing import Final
 DOMAIN: Final = "intelbras_amt"
 
 # Connection defaults
-DEFAULT_PORT: Final = 9015
+DEFAULT_PORT: Final = 9009
 DEFAULT_SCAN_INTERVAL: Final = 1  # seconds
 CONNECTION_TIMEOUT: Final = 5  # seconds
 RECONNECT_INTERVAL: Final = 10  # seconds
@@ -23,9 +23,16 @@ CONF_SCAN_INTERVAL: Final = "scan_interval"
 # Protocol constants
 FRAME_START: Final = 0xE9
 FRAME_SEPARATOR: Final = 0x21
+FRAME_HEARTBEAT: Final = 0xF7
+FRAME_ACK: Final = 0xFE
+CMD_CONNECTION_INFO: Final = 0x94  # Central sends this on connect
+
+# Server mode defaults
+DEFAULT_SERVER_HOST: Final = "0.0.0.0"
+RESPONSE_TIMEOUT: Final = 8  # seconds
 
 # Commands (ASCII)
-CMD_STATUS: Final = bytes([0x5A])  # 'Z'
+CMD_STATUS: Final = bytes([0x5B])  # '[' - Full status (54 bytes response)
 CMD_ARM: Final = bytes([0x41])  # 'A'
 CMD_DISARM: Final = bytes([0x44])  # 'D'
 CMD_STAY: Final = bytes([0x41, 0x50])  # 'AP'
