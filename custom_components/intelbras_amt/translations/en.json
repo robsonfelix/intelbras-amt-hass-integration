@@ -1,0 +1,51 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to AMT Alarm Panel",
+        "description": "Enter the connection details for your Intelbras AMT alarm panel.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "password": "Master Password"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the alarm panel",
+          "port": "TCP port (default: 9015)",
+          "password": "Master password (6 digits)"
+        }
+      },
+      "partitions": {
+        "title": "Partition Passwords (Optional)",
+        "description": "Enter passwords for individual partitions. Leave empty to use master password.",
+        "data": {
+          "password_a": "Partition A Password",
+          "password_b": "Partition B Password",
+          "password_c": "Partition C Password",
+          "password_d": "Partition D Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the alarm panel",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This alarm panel is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AMT Options",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)",
+          "password_a": "Partition A Password",
+          "password_b": "Partition B Password",
+          "password_c": "Partition C Password",
+          "password_d": "Partition D Password"
+        }
+      }
+    }
+  }
+}

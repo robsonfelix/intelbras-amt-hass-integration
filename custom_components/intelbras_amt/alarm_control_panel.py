@@ -1,0 +1,120 @@
+"""Alarm control panel for Intelbras AMT integration."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from homeassistant.components.alarm_control_panel import (
+    AlarmControlPanelEntity,
+    AlarmControlPanelEntityFeature,
+    AlarmControlPanelState,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import (
+    DATA_ARMED,
+    DATA_CONNECTED,
+    DATA_MODEL_NAME,
+    DATA_STAY,
+    DATA_TRIGGERED,
+    DOMAIN,
+    ENTITY_PREFIX,
+)
+from .coordinator import AMTCoordinator
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up alarm control panel from a config entry."""
+    coordinator: AMTCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    async_add_entities([AMTAlarmControlPanel(coordinator, entry)])
+
+
+class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelEntity):
+    """AMT Alarm Control Panel."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Central"
+    _attr_supported_features = (
+        AlarmControlPanelEntityFeature.ARM_HOME
+        | AlarmControlPanelEntityFeature.ARM_AWAY
+    )
+    _attr_code_arm_required = False
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the alarm control panel."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_alarm_panel"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        model_name = "AMT"
+        if self.coordinator.data:
+            model_name = self.coordinator.data.get(DATA_MODEL_NAME, "AMT")
+
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name=f"{ENTITY_PREFIX.upper()} {self._entry.data[CONF_HOST]}",
+            manufacturer="Intelbras",
+            model=model_name,
+        )
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        if not self.coordinator.data:
+            return False
+        return self.coordinator.data.get(DATA_CONNECTED, False)
+
+    @property
+    def alarm_state(self) -> AlarmControlPanelState | None:
+        """Return the state of the alarm."""
+        if not self.coordinator.data:
+            return None
+
+        if not self.coordinator.data.get(DATA_CONNECTED, False):
+            return None
+
+        if self.coordinator.data.get(DATA_TRIGGERED, False):
+            return AlarmControlPanelState.TRIGGERED
+
+        if self.coordinator.data.get(DATA_ARMED, False):
+            if self.coordinator.data.get(DATA_STAY, False):
+                return AlarmControlPanelState.ARMED_HOME
+            return AlarmControlPanelState.ARMED_AWAY
+
+        return AlarmControlPanelState.DISARMED
+
+    async def async_alarm_disarm(self, code: str | None = None) -> None:
+        """Disarm the alarm."""
+        await self.coordinator.async_disarm(code)
+
+    async def async_alarm_arm_home(self, code: str | None = None) -> None:
+        """Arm in stay mode."""
+        await self.coordinator.async_arm_stay(code)
+
+    async def async_alarm_arm_away(self, code: str | None = None) -> None:
+        """Arm the alarm."""
+        await self.coordinator.async_arm(code)
+
+    async def async_alarm_trigger(self, code: str | None = None) -> None:
+        """Trigger the alarm (not supported)."""
+        _LOGGER.warning("Trigger is not supported by AMT alarm panels")
