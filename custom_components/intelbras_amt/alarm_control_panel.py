@@ -9,6 +9,7 @@ from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
     AlarmControlPanelState,
+    CodeFormat,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PORT
@@ -52,7 +53,8 @@ class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelE
         AlarmControlPanelEntityFeature.ARM_HOME
         | AlarmControlPanelEntityFeature.ARM_AWAY
     )
-    _attr_code_arm_required = False
+    _attr_code_arm_required = True
+    _attr_code_format = CodeFormat.NUMBER
 
     def __init__(
         self,
