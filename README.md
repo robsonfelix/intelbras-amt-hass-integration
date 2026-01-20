@@ -12,20 +12,38 @@ Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 401
 
 ## Funcionalidades
 
-- **Painel de Alarme**: Armar/desarmar, modo stay
-- **Monitoramento de Zonas**: Todas as zonas (até 64) com status aberta, violada e anulada
-- **Controle de Partições**: Armar/desarmar individual para partições A, B, C, D
-- **Controle de PGM**: Ativar/desativar saídas PGM 1, 2, 3
-- **Sensores de Status**: Nível da bateria, energia AC, sirene, problemas
-- **Reconexão Automática**: Reconecta automaticamente em caso de perda de conexão
+- **Painel de Alarme**: Armar/desarmar com código de segurança obrigatório
+- **Modo Stay**: Armar em modo stay (parcial)
+- **Monitoramento de Zonas**: Até 64 zonas com status aberta, violada, anulada, tamper e curto-circuito
+- **Controle de Partições**: Switches para armar/desarmar partições A, B, C, D
+- **Controle de PGM**: 19 saídas PGM (switches on/off)
+- **Controle da Sirene**: Switch para ligar/desligar sirene
+- **Sensores de Status**: Nível da bateria, energia AC, problemas detalhados
+- **Contadores de Zonas**: Quantidade de zonas abertas, violadas e anuladas
+
+## Arquitetura: Modo Servidor
+
+Esta integração funciona em **modo servidor**: o Home Assistant abre uma porta TCP e aguarda a conexão da central AMT. A central é configurada para conectar ao IP do Home Assistant.
+
+```
+┌─────────────────┐         ┌─────────────────┐
+│   Central AMT   │ ──────► │  Home Assistant │
+│  (IP da rede)   │  TCP    │   (porta 9009)  │
+└─────────────────┘         └─────────────────┘
+```
+
+**Vantagens:**
+- Conexão mais estável (central mantém a conexão ativa)
+- Não requer configuração de NAT/firewall na direção HA→Central
+- Compatível com protocolo ISECNet/ISECMobile
 
 ## Modelos Suportados
 
-| Modelo | Zonas | Partições | Status |
-|--------|-------|-----------|--------|
-| AMT 4010 SMART | 64 | 4 | ✅ Testado |
-| AMT 2018 | 18 | 4 | 🔄 Deve funcionar |
-| AMT 1016 | 16 | 4 | 🔄 Deve funcionar |
+| Modelo | Zonas | Partições | PGMs | Status |
+|--------|-------|-----------|------|--------|
+| AMT 4010 SMART | 64 | 4 | 19 | ✅ Testado |
+| AMT 2018 | 18 | 4 | 19 | 🔄 Deve funcionar |
+| AMT 1016 | 16 | 4 | 19 | 🔄 Deve funcionar |
 
 ## Instalação
 
@@ -47,52 +65,89 @@ Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 401
 
 ## Configuração
 
+### 1. Configurar a Central AMT
+
+Configure sua central AMT para conectar ao Home Assistant:
+
+1. Acesse o menu de programação da central
+2. Configure o **IP de destino** com o endereço IP do Home Assistant
+3. Configure a **porta de destino**: `9009`
+4. Anote a **senha de acesso remoto** (4-6 dígitos)
+
+> **Nota**: A central precisa ter módulo Ethernet configurado e conectado à mesma rede do Home Assistant.
+
+### 2. Adicionar a Integração no Home Assistant
+
 1. Vá em **Configurações** → **Dispositivos e Serviços**
 2. Clique em **+ Adicionar Integração**
 3. Procure por "Intelbras AMT"
 4. Preencha:
-   - **Host**: Endereço IP do painel de alarme (ex: `192.168.1.100`)
-   - **Porta**: Porta TCP (padrão: `9015`)
-   - **Senha Master**: Senha master de 6 dígitos
+   - **Porta**: Porta TCP para escutar (padrão: `9009`)
+   - **Senha**: Senha de acesso remoto configurada na central
 5. Opcionalmente configure as senhas das partições
 
-## Conexão de Hardware
+### 3. Segurança
 
-O painel AMT conecta via TCP/IP na porta 9015. Certifique-se de que:
-- O módulo Ethernet do alarme está configurado e conectado à rede
-- A porta 9015 está acessível a partir do Home Assistant
-- Você possui a senha master do painel
+O painel de alarme requer **código numérico** para armar/desarmar. Este código é a mesma senha de acesso remoto configurada na central. Isso garante que mesmo usuários com acesso ao Home Assistant precisem saber a senha para controlar o alarme.
 
 ## Entidades Criadas
 
 ### Painel de Alarme
-- `alarm_control_panel.amt_central` - Painel principal do alarme
+| Entidade | Descrição |
+|----------|-----------|
+| `alarm_control_panel.amt_porta_XXXX_central` | Painel principal (requer código) |
 
-### Sensores Binários
-- `binary_sensor.amt_zona_N` - Status da zona N aberta (1-64)
-- `binary_sensor.amt_zona_N_violada` - Status da zona N violada
-- `binary_sensor.amt_zona_N_anulada` - Status da zona N anulada (bypass)
-- `binary_sensor.amt_particao_X` - Status da partição X armada (A/B/C/D)
-- `binary_sensor.amt_pgm_N` - Status do PGM N (1-3)
-- `binary_sensor.amt_energia_ac` - Status da energia AC
-- `binary_sensor.amt_bateria_conectada` - Status da bateria conectada
-- `binary_sensor.amt_sirene` - Status da sirene
-- `binary_sensor.amt_problema` - Indicador de problema
+Estados: `disarmed`, `armed_away`, `armed_home`, `triggered`
+
+### Switches (Controles)
+| Entidade | Descrição |
+|----------|-----------|
+| `switch.amt_*_armar` | Armar/desarmar geral |
+| `switch.amt_*_sirene` | Ligar/desligar sirene |
+| `switch.amt_*_particao_X` | Armar/desarmar partição (A/B/C/D) |
+| `switch.amt_*_pgm_N` | Ativar/desativar PGM (1-19) |
+
+### Sensores Binários - Zonas
+| Entidade | Quantidade | Descrição |
+|----------|------------|-----------|
+| `binary_sensor.amt_*_zona_N` | 64 | Zona aberta |
+| `binary_sensor.amt_*_zona_N_violada` | 64 | Zona violada |
+| `binary_sensor.amt_*_zona_N_anulada` | 64 | Zona anulada (bypass) |
+| `binary_sensor.amt_*_zona_N_tamper` | 18 | Zona com tamper |
+| `binary_sensor.amt_*_zona_N_curto_circuito` | 18 | Zona em curto-circuito |
+| `binary_sensor.amt_*_zona_N_bateria_fraca` | 40 | Bateria fraca (sensor sem fio) |
+
+### Sensores Binários - Status
+| Entidade | Descrição |
+|----------|-----------|
+| `binary_sensor.amt_*_energia_ac` | Energia AC conectada |
+| `binary_sensor.amt_*_bateria_conectada` | Bateria conectada |
+| `binary_sensor.amt_*_sirene` | Sirene ativa |
+| `binary_sensor.amt_*_problema` | Indicador de problema |
+| `binary_sensor.amt_*_bateria_fraca` | Bateria da central fraca |
+| `binary_sensor.amt_*_bateria_ausente` | Bateria ausente |
+| `binary_sensor.amt_*_bateria_em_curto` | Bateria em curto-circuito |
+| `binary_sensor.amt_*_sobrecarga_aux` | Sobrecarga na saída auxiliar |
+| `binary_sensor.amt_*_fio_sirene_cortado` | Fio da sirene cortado |
+| `binary_sensor.amt_*_sirene_em_curto` | Sirene em curto-circuito |
+| `binary_sensor.amt_*_linha_telefonica_cortada` | Linha telefônica cortada |
+| `binary_sensor.amt_*_falha_de_comunicacao` | Falha de comunicação |
 
 ### Sensores
-- `sensor.amt_nivel_da_bateria` - Nível da bateria (%)
-- `sensor.amt_modelo` - Nome do modelo
-- `sensor.amt_firmware` - Versão do firmware
+| Entidade | Descrição |
+|----------|-----------|
+| `sensor.amt_*_nivel_da_bateria` | Nível da bateria (%) |
+| `sensor.amt_*_modelo` | Nome do modelo |
+| `sensor.amt_*_firmware` | Versão do firmware |
+| `sensor.amt_*_zonas_abertas` | Quantidade de zonas abertas |
+| `sensor.amt_*_zonas_violadas` | Quantidade de zonas violadas |
+| `sensor.amt_*_zonas_anuladas` | Quantidade de zonas anuladas |
 
 ### Botões
-- `button.amt_armar` - Armar o alarme
-- `button.amt_desarmar` - Desarmar o alarme
-- `button.amt_armar_stay` - Armar em modo stay
-- `button.amt_armar_particao_X` - Armar partição X
-- `button.amt_desarmar_particao_X` - Desarmar partição X
-- `button.amt_ativar_pgm_N` - Ativar PGM N
-- `button.amt_desativar_pgm_N` - Desativar PGM N
-- `button.amt_anular_zonas_abertas` - Anular todas as zonas abertas
+| Entidade | Descrição |
+|----------|-----------|
+| `button.amt_*_armar_stay` | Armar em modo stay |
+| `button.amt_*_anular_zonas_abertas` | Anular todas as zonas abertas |
 
 ## Opções
 
@@ -102,15 +157,25 @@ O painel AMT conecta via TCP/IP na porta 9015. Certifique-se de que:
 
 ## Solução de Problemas
 
-### Não Consegue Conectar
-- Verifique se o endereço IP está correto
-- Certifique-se de que a porta 9015 está acessível
-- Confirme que a senha master está correta
-- Verifique se o painel de alarme está conectado à rede
+### Central Não Conecta
+
+1. Verifique se o IP do Home Assistant está configurado corretamente na central
+2. Confirme que a porta 9009 está acessível (firewall)
+3. Verifique se a central tem conexão de rede
+4. Veja os logs para mensagens de conexão
+
+### Senha Incorreta
+
+Se receber erro de senha incorreta:
+1. Confirme a senha de acesso remoto configurada na central
+2. A senha deve ter 4-6 dígitos numéricos
+3. Reconfigure a integração com a senha correta
 
 ### Entidades Indisponíveis
-- Verifique os logs do Home Assistant para erros de conexão
-- A integração reconecta automaticamente em caso de perda de conexão
+
+- Verifique se a central está conectada (aguarde até 60s)
+- Verifique os logs do Home Assistant para erros
+- A integração reconecta automaticamente quando a central reconecta
 
 ### Debug Logging
 
@@ -125,12 +190,25 @@ logger:
 
 ## Protocolo
 
-Esta integração se comunica diretamente com o painel AMT via TCP na porta 9015 usando o protocolo proprietário da Intelbras.
+Esta integração implementa o protocolo ISECNet/ISECMobile da Intelbras.
 
 ### Formato do Frame
 ```
-[Tamanho] [0xe9] [0x21] [SENHA_BYTES] [COMANDO] [0x21] [XOR_CHECKSUM]
+[Tamanho] [0xE9] [0x21] [SENHA_ASCII] [COMANDO] [0x21] [CHECKSUM]
 ```
+
+- **Senha**: Codificada em ASCII (ex: "1234" = `0x31 0x32 0x33 0x34`)
+- **Checksum**: XOR de todos os bytes, depois XOR com 0xFF
+
+### Comandos Principais
+| Comando | Código | Descrição |
+|---------|--------|-----------|
+| Status | `0x5B` | Solicita status completo (54 bytes) |
+| Armar | `0x41` | Armar alarme |
+| Desarmar | `0x44` | Desarmar alarme |
+| Stay | `0x41 0x50` | Armar em modo stay |
+| Sirene On | `0x43` | Ligar sirene |
+| Sirene Off | `0x63` | Desligar sirene |
 
 ## Contribuindo
 
@@ -142,7 +220,6 @@ Contribuições são bem-vindas! Por favor:
 Se você tem um modelo diferente de central AMT e quer ajudar a adicionar suporte, abra uma issue com:
 - Nome do modelo da sua central
 - Logs de debug da integração
-- Qualquer documentação do protocolo que você tenha
 
 ## Licença
 
@@ -150,4 +227,5 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 
 ## Créditos
 
-Baseado em engenharia reversa do protocolo Intelbras AMT.
+- Baseado no protocolo ISECNet/ISECMobile da Intelbras
+- Inspirado no projeto [intelbras-amt-home-assistant](https://github.com/Pehesi97/intelbras-amt-home-assistant) de Pehesi97
