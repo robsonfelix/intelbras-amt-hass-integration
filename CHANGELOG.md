@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-01-20
+
+### Added
+- **Partition Stay Mode**: Partition panels now support ARM_HOME (stay mode)
+  - Command `APA` (0x41 0x50 0x41) for partition A stay
+  - Command `APB` (0x41 0x50 0x42) for partition B stay
+  - Command `APC` (0x41 0x50 0x43) for partition C stay
+  - Command `APD` (0x41 0x50 0x44) for partition D stay
+
 ## [1.4.0] - 2025-01-20
 
 ### Added

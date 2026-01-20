@@ -24,6 +24,10 @@ from .const import (
     CMD_SIREN_OFF,
     CMD_SIREN_ON,
     CMD_STAY,
+    CMD_STAY_PARTITION_A,
+    CMD_STAY_PARTITION_B,
+    CMD_STAY_PARTITION_C,
+    CMD_STAY_PARTITION_D,
     CMD_STATUS,
     CONNECTION_TIMEOUT,
     DATA_AC_POWER,
@@ -595,6 +599,20 @@ class AMTServer:
             "B": CMD_ARM_PARTITION_B,
             "C": CMD_ARM_PARTITION_C,
             "D": CMD_ARM_PARTITION_D,
+        }
+        if partition not in commands:
+            raise ValueError(f"Invalid partition: {partition}")
+
+        pwd = password or self._partition_passwords.get(partition) or self._password
+        await self._send_command(commands[partition], pwd)
+
+    async def arm_stay_partition(self, partition: str, password: str | None = None) -> None:
+        """Arm a specific partition in stay mode."""
+        commands = {
+            "A": CMD_STAY_PARTITION_A,
+            "B": CMD_STAY_PARTITION_B,
+            "C": CMD_STAY_PARTITION_C,
+            "D": CMD_STAY_PARTITION_D,
         }
         if partition not in commands:
             raise ValueError(f"Invalid partition: {partition}")

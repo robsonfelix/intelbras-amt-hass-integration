@@ -146,7 +146,10 @@ class AMTPartitionAlarmPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPane
     """AMT Partition Alarm Control Panel."""
 
     _attr_has_entity_name = True
-    _attr_supported_features = AlarmControlPanelEntityFeature.ARM_AWAY
+    _attr_supported_features = (
+        AlarmControlPanelEntityFeature.ARM_HOME
+        | AlarmControlPanelEntityFeature.ARM_AWAY
+    )
     _attr_code_arm_required = True
     _attr_code_format = CodeFormat.NUMBER
 
@@ -214,6 +217,10 @@ class AMTPartitionAlarmPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPane
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Disarm the partition."""
         await self.coordinator.async_disarm_partition(self._partition_name, code)
+
+    async def async_alarm_arm_home(self, code: str | None = None) -> None:
+        """Arm the partition in stay mode."""
+        await self.coordinator.async_arm_stay_partition(self._partition_name, code)
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Arm the partition."""

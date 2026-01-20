@@ -83,6 +83,11 @@ class AMTCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.server.arm_partition(partition, code)
         await self.async_request_refresh()
 
+    async def async_arm_stay_partition(self, partition: str, code: str | None = None) -> None:
+        """Arm a specific partition in stay mode."""
+        await self.server.arm_stay_partition(partition, code)
+        await self.async_request_refresh()
+
     async def async_disarm_partition(self, partition: str, code: str | None = None) -> None:
         """Disarm a specific partition."""
         await self.server.disarm_partition(partition, code)
