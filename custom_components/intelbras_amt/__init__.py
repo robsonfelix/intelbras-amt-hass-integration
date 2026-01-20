@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 
+from .control_server import AMTControlServer
 from .server import AMTServer
 from .const import (
     CONF_PASSWORD_A,
@@ -15,6 +16,7 @@ from .const import (
     CONF_PASSWORD_C,
     CONF_PASSWORD_D,
     CONF_SCAN_INTERVAL,
+    DEFAULT_CONTROL_PORT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
@@ -52,6 +54,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Start the server
     await server.start()
 
+    # Start control server for CLI access
+    control_server = AMTControlServer(server, DEFAULT_CONTROL_PORT)
+    await control_server.start()
+
     # Get scan interval from options or data
     scan_interval = entry.options.get(
         CONF_SCAN_INTERVAL,
@@ -63,7 +69,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Don't wait for first refresh - panel may not be connected yet
     # The coordinator will return disconnected status until panel connects
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    hass.data[DOMAIN][entry.entry_id] = {
+        "coordinator": coordinator,
+        "control_server": control_server,
+    }
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -71,7 +80,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    _LOGGER.info("Intelbras AMT integration started, waiting for panel connection on port %s", entry.data[CONF_PORT])
+    _LOGGER.info(
+        "Intelbras AMT integration started, panel port=%s, control port=%s",
+        entry.data[CONF_PORT],
+        DEFAULT_CONTROL_PORT,
+    )
 
     return True
 
@@ -81,7 +94,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        coordinator: AMTCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        data = hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator: AMTCoordinator = data["coordinator"]
+        control_server: AMTControlServer = data["control_server"]
+        await control_server.stop()
         await coordinator.async_shutdown()
 
     return unload_ok

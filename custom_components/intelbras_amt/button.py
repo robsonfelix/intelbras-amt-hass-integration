@@ -29,7 +29,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up buttons from a config entry."""
-    coordinator: AMTCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: AMTCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     entities: list[ButtonEntity] = []
 

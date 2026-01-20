@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-01-20
+
+### Added
+- **CLI Control Port**: HTTP REST API server on port 9019 for protocol testing
+  - Allows sending raw hex commands through existing panel connection
+  - Endpoints: `/status`, `/connected`, `/command/raw`, `/command/arm`, `/command/disarm`, `/command/stay`, `/command/siren`, `/command/pgm`
+- **CLI Tool** (`tools/amt_cli.py`): Command-line tool for testing protocol commands
+  - `amt_cli status` - Get panel status
+  - `amt_cli raw "41 35" -p 1234` - Send raw hex commands
+  - `amt_cli arm -P A --stay` - Test partition stay modes
+  - Works with Python stdlib (no external dependencies required)
+
+### Changed
+- Internal data structure for storing coordinator and control server
+
 ## [1.3.0] - 2025-01-20
 
 ### Added

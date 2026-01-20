@@ -189,6 +189,78 @@ logger:
     custom_components.intelbras_amt: debug
 ```
 
+## CLI Control Port (Desenvolvedor)
+
+A integração expõe uma porta HTTP (9019) para testes de protocolo via linha de comando.
+
+### Porta de Controle
+
+| Porta | Descrição |
+|-------|-----------|
+| 9009 | Porta TCP para conexão do painel AMT |
+| 9019 | Porta HTTP REST API para controle via CLI |
+
+### Endpoints da API
+
+| Metodo | Endpoint | Descrição | Body |
+|--------|----------|-----------|------|
+| GET | `/status` | Status do painel | - |
+| GET | `/connected` | Verifica conexão | - |
+| POST | `/command/raw` | Comando hex | `{"command": "41 35", "password": "1234"}` |
+| POST | `/command/arm` | Armar | `{"partition": "A", "stay": true, "password": "1234"}` |
+| POST | `/command/disarm` | Desarmar | `{"partition": "A", "password": "1234"}` |
+| POST | `/command/stay` | Armar stay | `{"password": "1234"}` |
+| POST | `/command/siren` | Controlar sirene | `{"action": "on"}` |
+| POST | `/command/pgm` | Controlar PGM | `{"number": 1, "action": "on"}` |
+
+### Ferramenta CLI
+
+O arquivo `tools/amt_cli.py` pode ser usado para testar comandos:
+
+```bash
+# Status do painel
+python tools/amt_cli.py status
+
+# Verificar conexão
+python tools/amt_cli.py connected
+
+# Enviar comando raw (status 0x5B)
+python tools/amt_cli.py raw "5B" -p 1234
+
+# Testar modo stay da partição A (0x41 0x35)
+python tools/amt_cli.py raw "41 35" -p 1234
+
+# Armar partição A em modo stay
+python tools/amt_cli.py arm -P A --stay -p 1234
+
+# Desarmar
+python tools/amt_cli.py disarm -p 1234
+
+# Controlar sirene
+python tools/amt_cli.py siren on
+python tools/amt_cli.py siren off
+
+# Controlar PGM
+python tools/amt_cli.py pgm 1 on
+```
+
+### Uso com curl
+
+```bash
+# Status
+curl http://localhost:9019/status
+
+# Comando raw
+curl -X POST http://localhost:9019/command/raw \
+  -H "Content-Type: application/json" \
+  -d '{"command": "41 35", "password": "1234"}'
+
+# Armar partição A em stay
+curl -X POST http://localhost:9019/command/arm \
+  -H "Content-Type: application/json" \
+  -d '{"partition": "A", "stay": true, "password": "1234"}'
+```
+
 ## Protocolo
 
 Esta integração implementa o protocolo ISECNet/ISECMobile da Intelbras.

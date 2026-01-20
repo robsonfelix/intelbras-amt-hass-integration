@@ -6,6 +6,7 @@ DOMAIN: Final = "intelbras_amt"
 
 # Connection defaults
 DEFAULT_PORT: Final = 9009
+DEFAULT_CONTROL_PORT: Final = 9019  # HTTP control port for CLI access
 DEFAULT_SCAN_INTERVAL: Final = 1  # seconds
 CONNECTION_TIMEOUT: Final = 5  # seconds
 RECONNECT_INTERVAL: Final = 10  # seconds

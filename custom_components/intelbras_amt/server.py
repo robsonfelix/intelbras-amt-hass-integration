@@ -670,3 +670,39 @@ class AMTServer:
             return True
         except AMTServerError:
             return False
+
+    async def send_raw_command(
+        self, command_hex: str, password: str | None = None
+    ) -> dict[str, Any]:
+        """Send a raw command and return the response.
+
+        Args:
+            command_hex: Command as hex string (e.g., "41 35" for partition A stay)
+            password: Optional password override
+
+        Returns:
+            dict with 'success', 'response_hex', 'error' keys
+        """
+        try:
+            command_bytes = bytes.fromhex(command_hex.replace(" ", ""))
+            _LOGGER.info("Sending raw command: %s", command_bytes.hex())
+            response = await self._send_command(command_bytes, password)
+            _LOGGER.info("Raw command response: %s", response.hex())
+            return {
+                "success": True,
+                "response_hex": response.hex(),
+                "response_length": len(response),
+            }
+        except AMTNackError as e:
+            _LOGGER.warning("Raw command NACK: %s (code=0x%02X)", e.message, e.nack_code)
+            return {
+                "success": False,
+                "error": e.message,
+                "nack_code": e.nack_code,
+            }
+        except AMTServerError as e:
+            _LOGGER.error("Raw command error: %s", e)
+            return {
+                "success": False,
+                "error": str(e),
+            }
