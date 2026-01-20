@@ -21,6 +21,7 @@ from .const import (
     DATA_ARMED,
     DATA_CONNECTED,
     DATA_MODEL_NAME,
+    DATA_SIREN,
     DATA_STAY,
     DATA_TRIGGERED,
     DOMAIN,
@@ -93,10 +94,17 @@ class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelE
         if not self.coordinator.data.get(DATA_CONNECTED, False):
             return None
 
-        if self.coordinator.data.get(DATA_TRIGGERED, False):
+        armed = self.coordinator.data.get(DATA_ARMED, False)
+        triggered = self.coordinator.data.get(DATA_TRIGGERED, False)
+        siren_on = self.coordinator.data.get(DATA_SIREN, False)
+
+        # Only show TRIGGERED if:
+        # - Siren is currently on, OR
+        # - Alarm is armed AND triggered bit is set
+        if siren_on or (armed and triggered):
             return AlarmControlPanelState.TRIGGERED
 
-        if self.coordinator.data.get(DATA_ARMED, False):
+        if armed:
             if self.coordinator.data.get(DATA_STAY, False):
                 return AlarmControlPanelState.ARMED_HOME
             return AlarmControlPanelState.ARMED_AWAY
