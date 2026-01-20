@@ -1,8 +1,8 @@
 # Integração Intelbras AMT para Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/release/robsonfelix/intelbras-amt-hass-integration.svg)](https://github.com/robsonfelix/intelbras-amt-hass-integration/releases)
-[![License](https://img.shields.io/github/license/robsonfelix/intelbras-amt-hass-integration.svg)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/robsonfelix/intelbras-amt-hass-integration?include_prereleases)](https://github.com/robsonfelix/intelbras-amt-hass-integration/releases)
+[![License](https://img.shields.io/github/license/robsonfelix/intelbras-amt-hass-integration)](LICENSE)
 
 Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 4010, AMT 2018 e AMT 1016.
 
